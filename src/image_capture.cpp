@@ -39,9 +39,13 @@ ImageCapture::ImageCapture(const ros::NodeHandle& nh,
 
 ImageCapture::~ImageCapture() 
 {
-    Close(); 
-    _stop = true; 
-    _thread.join(); 
+    Close();
+
+    if (_thread.joinable())
+    { 
+        _stop = true; 
+        _thread.join();
+    } 
 }
 
 bool ImageCapture::reset_callback(std_srvs::Trigger::Request &request, 

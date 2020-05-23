@@ -34,9 +34,10 @@ private:
     
     boost::thread _thread;
     std::atomic<bool> _stop; 
-    std::mutex _mutex; 
 
     cv::VideoCapture _cap; 
+    std::mutex _mutex; 
+
     bool _auto_reset; 
     std::shared_ptr<ros::Rate> _capture_rate; 
 }; 
