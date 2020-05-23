@@ -177,7 +177,7 @@ void ImageCapture::capture_thread()
     cv::Mat image;
     cv_bridge::CvImage cvi; 
     cvi.encoding = sensor_msgs::image_encodings::BGR8;
-    double start_time = ros::Time::now().toNsec(); 
+    double start_time = ros::Time::now().toNSec(); 
     int frame_count = 0; 
     while (!_stop && ros::ok()) 
     {
@@ -220,7 +220,7 @@ void ImageCapture::capture_thread()
             ROS_WARN_STREAM("cv_bridge exception: " << ex.what());
         }
 
-        double stop_time = ros::Time::now().toNsec(); 
+        double stop_time = ros::Time::now().toNSec(); 
         if (stop_time - start_time > 1000000000)
         {
             start_time = stop_time; 
