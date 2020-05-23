@@ -73,7 +73,7 @@ bool ImageCapture::reset_callback(std_srvs::Trigger::Request &request,
 // Refresh parameters for every open  
 bool ImageCapture::Open() 
 {
-    ROS_INFO("Opening stream...");
+    ROS_INFO("Opening input stream...");
     std::lock_guard<std::mutex> lock(_mutex); 
 
     // auto reset on failure or end of stream 
@@ -100,24 +100,23 @@ bool ImageCapture::Open()
     try 
     {
         int device_id = std::stoi(provider);
-        ROS_INFO_STREAM("Stream provider: /dev/video" << device_id);
+        ROS_INFO_STREAM("Input stream provider: /dev/video" << device_id);
         _cap.open(device_id);
     } 
     catch (std::invalid_argument& ex) 
     {
-        ROS_INFO_STREAM("Stream provider: " << provider);
+        ROS_INFO_STREAM("Input stream provider: " << provider);
         if (backend == "gstreamer") {
             _cap.open(provider, cv::CAP_GSTREAMER);
         }
         else {
             _cap.open(provider);
         }
- 
     }
 
     if (!_cap.isOpened()) 
     {
-        ROS_ERROR_STREAM("Failed to open stream provider: " << provider);
+        ROS_ERROR_STREAM("Failed to open input stream provider: " << provider);
         return false;
     }
 
@@ -140,16 +139,16 @@ bool ImageCapture::Open()
     _capture_rate.reset(); 
     if (fps > 0) _capture_rate.reset(new ros::Rate(fps)); 
 
-    ROS_INFO("Stream opened.");
+    ROS_INFO("Input stream opened.");
     return true;
 }
 
 void ImageCapture::Close() 
 {
-    ROS_INFO("Closing stream...");
+    ROS_INFO("Closing input stream...");
     std::lock_guard<std::mutex> lock(_mutex); 
     _cap.release(); 
-    ROS_INFO("Stream closed!");
+    ROS_INFO("Input stream closed!");
 }
 
 bool ImageCapture::Capture(cv::Mat& image) 
@@ -216,7 +215,7 @@ void ImageCapture::capture_thread()
         if (stop_time - start_time > 1000000000)
         {
             start_time = stop_time; 
-            ROS_INFO_STREAM("fps: " << frame_count); 
+            ROS_INFO_STREAM("Capture FPS: " << frame_count); 
             frame_count = 0; 
         }
     }

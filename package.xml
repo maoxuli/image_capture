@@ -51,6 +51,7 @@
   <!--   <doc_depend>doxygen</doc_depend> -->
   <buildtool_depend>catkin</buildtool_depend>
   <depend>roscpp</depend>
+  <depend>nodelet</depend>
   <depend>std_srvs</depend>
   <depend>sensor_msgs</depend>
   <depend>cv_bridge</depend>
@@ -58,6 +59,6 @@
   <!-- The export tag contains other, unspecified, tags -->
   <export>
     <!-- Other tools can request additional information be placed here -->
-
+    <nodelet plugin="${prefix}/nodelet.xml" />
   </export>
 </package>
