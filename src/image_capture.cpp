@@ -1,6 +1,7 @@
 #include "image_capture.h"
 #include "ros_parameter.hpp"
 
+#include <sensor_msgs/Image.h>
 #include <cv_bridge/cv_bridge.h>
 
 ImageCapture::ImageCapture(const ros::NodeHandle& nh, 
@@ -79,14 +80,14 @@ bool ImageCapture::Open()
     _auto_reset = true; 
     LoadParam(_private_nh, "auto_reset", _auto_reset); 
 
+    // backend of OpenCV
+    std::string backend; 
+    LoadParam(_private_nh, "backend", backend);
+
     // image provider 
     std::string provider;
     LoadParam(_private_nh, "provider", provider, true); 
 
-    // backend of OpenCV
-    std::string backend; 
-    LoadParam(_private_nh, "backend", backend);
-    
     // image size  
     int width = 0, height = 0; 
     LoadParam(_private_nh, "width", width); 
@@ -120,36 +121,22 @@ bool ImageCapture::Open()
         return false;
     }
 
-    if (width > 0) 
-    {
-        if (!_cap.set(cv::CAP_PROP_FRAME_WIDTH, width)) {
-            ROS_WARN("Width is not support!");
-        }
-        else {
-            ROS_INFO_STREAM("Width is set to: " << _cap.get(cv::CAP_PROP_FRAME_WIDTH));
-        }
+    if (width > 0 && !_cap.set(cv::CAP_PROP_FRAME_WIDTH, width)) {
+        ROS_WARN("Width is not support!");
     }
 
-    if (height > 0) 
-    {
-        if (!_cap.set(cv::CAP_PROP_FRAME_HEIGHT, height)) {
-            ROS_WARN("Height is not support!");
-        }
-        else {
-            ROS_INFO_STREAM("Height is set to: " << _cap.get(cv::CAP_PROP_FRAME_HEIGHT));
-        }
+    if (height > 0 && !_cap.set(cv::CAP_PROP_FRAME_HEIGHT, height)) {
+        ROS_WARN("Height is not support!");
     }
 
-    if (fps > 0) 
-    {
-        if (!_cap.set(cv::CAP_PROP_FPS, fps)) {
-            ROS_WARN("FPS is not support!");
-        }
-        else {
-            ROS_INFO_STREAM("FPS is set to: " << _cap.get(cv::CAP_PROP_FPS));
-        }
+    if (fps > 0 && !_cap.set(cv::CAP_PROP_FPS, fps)) {
+        ROS_WARN("FPS is not support!");
     }
 
+    ROS_INFO_STREAM("Width is set to: " << _cap.get(cv::CAP_PROP_FRAME_WIDTH));
+    ROS_INFO_STREAM("Height is set to: " << _cap.get(cv::CAP_PROP_FRAME_HEIGHT));
+    ROS_INFO_STREAM("FPS is set to: " << _cap.get(cv::CAP_PROP_FPS));
+ 
     _capture_rate.reset(); 
     if (fps > 0) _capture_rate.reset(new ros::Rate(fps)); 
 

@@ -4,6 +4,7 @@
 #include <ros/ros.h>
 #include <opencv2/opencv.hpp>
 #include <std_srvs/Trigger.h>
+
 #include <boost/thread.hpp>
 #include <mutex>
 #include <atomic>
