@@ -9,12 +9,12 @@
   <arg name="reset_service" default="reset_capture" />
   <arg name="auto_reset" default="true" />
 
-  <arg_name="sensor_id" default="0" />
+  <arg name="camera_id" default="0" />
   <arg name="width" default="0" />
   <arg name="height" default="0" />
   <arg name="fps" default="0" />
 
-  <arg name="pipeline" default="nvarguscamerasrc sensor-id=$(arg sensor_id) ! 
+  <arg name="pipeline" default="nvarguscamerasrc sensor-id=$(arg camera_id) ! 
                                 video/x-raw(memory:NVMM), format=(string)NV12, 
                                 width=(int)$(arg width), height=(int)$(arg height),  
                                 framerate=(fraction)$(arg fps)/1 !  
