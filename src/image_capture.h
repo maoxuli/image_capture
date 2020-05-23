@@ -8,6 +8,8 @@
 #include <mutex>
 #include <atomic>
 
+#include "thread_safe_image.h"
+
 class ImageCapture 
 {
 public: 
@@ -22,6 +24,7 @@ private:
     bool Capture(cv::Mat& image); 
 
     void capture_thread(); 
+    void publish_thread(); 
 
     bool reset_callback(std_srvs::Trigger::Request  &request, 
                         std_srvs::Trigger::Response &response);
@@ -32,13 +35,16 @@ private:
     ros::Publisher _image_pub; 
     ros::ServiceServer _reset_svr; 
     
-    boost::thread _thread;
-    std::atomic<bool> _stop; 
-    std::mutex _mutex; 
+    boost::thread _capture_thread;
+    boost::thread _publish_thread; 
 
     cv::VideoCapture _cap; 
+    std::mutex _mutex; 
+
     bool _auto_reset; 
     std::shared_ptr<ros::Rate> _capture_rate; 
+
+    ThreadSafeImage _queued_image;
 }; 
 
 #endif // #ifndef __IMAGE_CAPTURE_H

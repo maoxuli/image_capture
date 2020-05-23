@@ -26,9 +26,11 @@ ImageCapture::ImageCapture(const ros::NodeHandle& nh,
 
     try 
     {
-        _stop = false; 
-        ROS_INFO_STREAM("Start capture thread...");
-        _thread = boost::thread(boost::bind(&ImageCapture::capture_thread, this));
+        ROS_INFO_STREAM("Start publish thread...");
+        _publish_thread = boost::thread(boost::bind(&ImageCapture::publish_thread, this));
+
+         ROS_INFO_STREAM("Start capture thread...");
+        _capture_thread = boost::thread(boost::bind(&ImageCapture::capture_thread, this));
     } 
     catch (std::exception& ex) 
     {
@@ -40,8 +42,18 @@ ImageCapture::ImageCapture(const ros::NodeHandle& nh,
 ImageCapture::~ImageCapture() 
 {
     Close(); 
-    _stop = true; 
-    _thread.join(); 
+
+    if (_capture_thread.joinable())
+    {
+        _capture_thread.interrupt();
+        _capture_thread.join();
+    }
+
+    if (_publish_thread.joinable())
+    {
+        _publish_thread.interrupt();
+        _publish_thread.join();
+    }
 }
 
 bool ImageCapture::reset_callback(std_srvs::Trigger::Request &request, 
@@ -168,68 +180,101 @@ bool ImageCapture::Capture(cv::Mat& image)
     return _cap.isOpened() && _cap.read(image); 
 }
 
-// thread function for capture and publish 
 void ImageCapture::capture_thread() 
 {  
     ROS_INFO("Capture thread start...");
     Open(); 
 
     cv::Mat image;
-    cv_bridge::CvImage cvi; 
-    cvi.encoding = sensor_msgs::image_encodings::BGR8;
     double start_time = ros::Time::now().toNSec(); 
     int frame_count = 0; 
-    while (!_stop && ros::ok()) 
+
+    try 
     {
-        try 
+        while (ros::ok()) 
         {
-            if (!Capture(image)) 
+            try 
             {
-                ROS_WARN("Failed to capture image!");
-                ros::Duration(0.5).sleep();
-                if (_auto_reset) 
+                if (!Capture(image)) 
                 {
-                    Close(); 
+                    ROS_WARN("Failed to capture image!");
                     ros::Duration(0.5).sleep();
-                    Open(); 
+                    if (_auto_reset) 
+                    {
+                        Close(); 
+                        ros::Duration(0.5).sleep();
+                        Open(); 
+                    }
+                    continue; 
                 }
+
+                _queued_image.set(StampedImage(image, ros::Time::now().toSec()));
+            }
+            catch (const cv::Exception& ex)
+            {
+                ROS_ERROR_STREAM("OpenCV exception: " << ex.what());
                 continue; 
             }
-        }
-        catch (const cv::Exception& ex)
-        {
-            ROS_ERROR_STREAM("OpenCV exception: " << ex.what());
-            continue; 
-        }
 
-        try 
-        {
-            cvi.header.stamp = ros::Time::now(); 
-            cvi.image = image; 
-
-            assert(_image_pub); 
-            _image_pub.publish(cvi.toImageMsg()); 
-            ROS_DEBUG("Publish image: %f", cvi.header.stamp.toSec());
-
-            if (_capture_rate) _capture_rate->sleep(); 
+            frame_count++; 
+            double stop_time = ros::Time::now().toNSec(); 
+            if (stop_time - start_time > 1000000000)
+            {
+                start_time = stop_time; 
+                ROS_INFO_STREAM("Capture FPS: " << frame_count); 
+                frame_count = 0; 
+            }
         }
-        catch (const ros::Exception& ex) {
-            ROS_ERROR_STREAM("ROS exception: " << ex.what());
-        }
-        catch(const cv_bridge::Exception& ex) {
-            ROS_WARN_STREAM("cv_bridge exception: " << ex.what());
-        }
-
-        frame_count++; 
-        double stop_time = ros::Time::now().toNSec(); 
-        if (stop_time - start_time > 1000000000)
-        {
-            start_time = stop_time; 
-            ROS_INFO_STREAM("fps: " << frame_count); 
-            frame_count = 0; 
-        }
+    }
+    catch (const boost::thread_interrupted&)
+    {
     }
 
     Close(); 
     ROS_INFO("Capture thread stopped!");
+}
+
+void ImageCapture::publish_thread() 
+{  
+    ROS_INFO("Publsih thread start...");
+    cv_bridge::CvImage cvi; 
+    cvi.encoding = sensor_msgs::image_encodings::BGR8;
+    double start_time = ros::Time::now().toNSec(); 
+    int frame_count = 0; 
+
+    try 
+    {
+        while (ros::ok()) 
+        {
+            try 
+            {
+                StampedImage si = _queued_image.pop();
+                cvi.image = si.image; 
+                cvi.header.stamp = ros::Time(si.stamp);
+
+                assert(_image_pub); 
+                _image_pub.publish(cvi.toImageMsg()); 
+                ROS_DEBUG("Publish image: %f", cvi.header.stamp.toSec());
+            }
+            catch(const cv_bridge::Exception& ex) {
+                ROS_WARN_STREAM("cv_bridge exception: " << ex.what());
+            }
+            catch (const ros::Exception& ex) {
+                ROS_ERROR_STREAM("ROS exception: " << ex.what());
+            }
+
+            frame_count++; 
+            double stop_time = ros::Time::now().toNSec(); 
+            if (stop_time - start_time > 1000000000)
+            {
+                start_time = stop_time; 
+                ROS_INFO_STREAM("Publish FPS: " << frame_count); 
+                frame_count = 0; 
+            }
+        }
+    }
+    catch (const boost::thread_interrupted&)
+    {
+    }
+    ROS_INFO("Publish thread stopped!");
 }
