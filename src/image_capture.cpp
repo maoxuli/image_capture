@@ -181,6 +181,7 @@ void ImageCapture::capture_thread()
     {
         try 
         {
+            double now = ros::Time::now().toSec(); 
             if (!Capture(image)) 
             {
                 ROS_WARN("Failed to capture image!");
@@ -193,6 +194,7 @@ void ImageCapture::capture_thread()
                 }
                 continue; 
             }
+            ROS_INFO_STREAM("capture using: " << (ros::Time::now().toSec() - now)); 
         }
         catch (const cv::Exception& ex)
         {
@@ -202,12 +204,14 @@ void ImageCapture::capture_thread()
 
         try 
         {
+            double now = ros::Time::now().toSec(); 
             cvi.header.stamp = ros::Time::now(); 
             cvi.image = image; 
 
             assert(_image_pub); 
             _image_pub.publish(cvi.toImageMsg()); 
             ROS_DEBUG("Publish image: %f", cvi.header.stamp.toSec());
+            ROS_INFO_STREAM("publish using: " << (ros::Time::now().toSec() - now)); 
 
             if (_capture_rate) _capture_rate->sleep(); 
         }
