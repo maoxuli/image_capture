@@ -6,21 +6,28 @@
 
   <arg name="node_name" default="image_capture" />
   <arg name="image_topic" default="image_raw" />
-  <arg name="reset_service" default="reset_capture" />  
+  <arg name="reset_service" default="reset_capture" />
   <arg name="auto_reset" default="true" />
 
-  <arg name="provider" default="0" />
+  <arg_name="sensor_id" default="0" />
   <arg name="width" default="0" />
   <arg name="height" default="0" />
   <arg name="fps" default="0" />
 
+  <arg name="pipeline" default="nvarguscamerasrc sensor-id=$(arg sensor_id) ! 
+                                video/x-raw(memory:NVMM), format=(string)NV12, 
+                                width=(int)$(arg width), height=(int)$(arg height),  
+                                framerate=(fraction)$(arg fps)/1 !  
+                                nvvidconv flip-method=0 ! video/x-raw, format=(string)BGRx !  
+                                videoconvert ! video/x-raw, format=(string)BGR ! appsink" />
+
   <node pkg="image_capture" type="image_capture_node" name="$(arg node_name)" 
         output="$(arg output)" respawn="$(arg respawn)"> 
-    <param name="backend" type="str" value="" />
-    <param name="provider" type="str" value="$(arg provider)" />
-    <param name="width" type="int" value="$(arg width)" />
-    <param name="height" type="int" value="$(arg height)" />
-    <param name="fps" type="double" value="$(arg fps)" />
+    <param name="backend" type="str" value="gstreamer" />
+    <param name="provider" type="str" value="$(arg pipeline)" />
+    <param name="width" type="int" value="0" />
+    <param name="height" type="int" value="0" />
+    <param name="fps" type="double" value="0" />
     <param name="auto_reset" type="bool" value="$(arg auto_reset)" />
     <remap from="reset" to="$(arg reset_service)" />
     <remap from="image" to="$(arg image_topic)" />

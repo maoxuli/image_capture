@@ -20,7 +20,7 @@ ImageCapture::ImageCapture(const ros::NodeHandle& nh,
     }
     catch (const ros::Exception& ex)
     {
-        ROS_ERROR("ROS exception: %s", ex.what());
+        ROS_ERROR_STREAM("ROS exception: " << ex.what());
         throw std::runtime_error(std::string("ROS exception: ") + ex.what()); 
     }
 
@@ -32,7 +32,7 @@ ImageCapture::ImageCapture(const ros::NodeHandle& nh,
     } 
     catch (std::exception& ex) 
     {
-        ROS_ERROR("Failed to start thread: %s", ex.what());
+        ROS_ERROR_STREAM("Boost thread exception: " << ex.what());
         throw std::runtime_error(std::string("Boost thread exception: ") + ex.what());
     }
 }
@@ -47,11 +47,21 @@ ImageCapture::~ImageCapture()
 bool ImageCapture::reset_callback(std_srvs::Trigger::Request &request, 
                                   std_srvs::Trigger::Response &response)
 {
-    ROS_INFO("Reset service callback...");
-    Close();
-    Open(); 
-    response.success = true; 
-    return true; 
+    try
+    {
+        ROS_INFO("Reset service callback...");
+        Close();
+        Open(); 
+        response.success = true; 
+        return true; 
+    }
+    catch (const cv::Exception& ex)
+    {
+        ROS_ERROR_STREAM("OpenCV exception: " << ex.what());
+        response.success = false; 
+        response.message = std::string("OpenCV exception: ") + ex.what(); 
+        return false;
+    }
 }
 
 // Open stream for capture 
@@ -68,6 +78,10 @@ bool ImageCapture::Open()
     // image provider 
     std::string provider;
     LoadParam(_private_nh, "provider", provider, true); 
+
+    // backend of OpenCV
+    std::string backend; 
+    LoadParam(_private_nh, "backend", backend);
     
     // image size  
     int width = 0, height = 0; 
@@ -87,7 +101,12 @@ bool ImageCapture::Open()
     catch (std::invalid_argument& ex) 
     {
         ROS_INFO_STREAM("Stream provider: " << provider);
-        _cap.open(provider);
+        if (backend == "gstreamer") {
+            _cap.open(provider, cv::CAP_GSTREAMER);
+        }
+        else {
+            _cap.open(provider);
+        }
  
     }
 
@@ -155,33 +174,49 @@ void ImageCapture::capture_thread()
     ROS_INFO("Capture thread start...");
     Open(); 
 
-    // loop to capture and publish image 
     cv::Mat image;
     cv_bridge::CvImage cvi; 
     cvi.encoding = sensor_msgs::image_encodings::BGR8;
     while (!_stop && ros::ok()) 
     {
-        if (!Capture(image)) 
+        try 
         {
-            ROS_WARN("Failed to capture image!");
-            ros::Duration(0.5).sleep();
-            if (_auto_reset) 
+            if (!Capture(image)) 
             {
-                Close(); 
+                ROS_WARN("Failed to capture image!");
                 ros::Duration(0.5).sleep();
-                Open(); 
+                if (_auto_reset) 
+                {
+                    Close(); 
+                    ros::Duration(0.5).sleep();
+                    Open(); 
+                }
+                continue; 
             }
+        }
+        catch (const cv::Exception& ex)
+        {
+            ROS_ERROR_STREAM("OpenCV exception: " << ex.what());
             continue; 
         }
 
-        cvi.header.stamp = ros::Time::now(); 
-        cvi.image = image; 
+        try 
+        {
+            cvi.header.stamp = ros::Time::now(); 
+            cvi.image = image; 
 
-        assert(_image_pub); 
-        _image_pub.publish(cvi.toImageMsg()); 
-        ROS_DEBUG("Publish image: %f", cvi.header.stamp.toSec());
+            assert(_image_pub); 
+            _image_pub.publish(cvi.toImageMsg()); 
+            ROS_DEBUG("Publish image: %f", cvi.header.stamp.toSec());
 
-        if (_capture_rate) _capture_rate->sleep(); 
+            if (_capture_rate) _capture_rate->sleep(); 
+        }
+        catch (const ros::Exception& ex) {
+            ROS_ERROR_STREAM("ROS exception: " << ex.what());
+        }
+        catch(const cv_bridge::Exception& ex) {
+            ROS_WARN_STREAM("cv_bridge exception: " << ex.what());
+        }
     }
 
     Close(); 

@@ -4,8 +4,6 @@
 #include <ros/ros.h>
 #include <XmlRpcException.h>
 
-namespace ros {
-
 // Load paramemeters from ROS parameter server
 // throw ros::InvalidNameException if the key failed in validation
 // throw ros::Exception for any XmlRpc exceptions
@@ -55,7 +53,5 @@ void LoadParam(const ros::NodeHandle& nh, const std::string& name, std::vector<T
         throw ros::Exception(std::string("XmlRpcException: ") + ex.getMessage());
     }
 }
-
-} // namespace ros 
 
 #endif // #ifndef __ROS_PARAMETER_HPP
