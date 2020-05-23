@@ -1,0 +1,33 @@
+<launch>
+
+	<arg name="output" default="screen" />
+	<arg name="respawn" default="false" />
+  <arg name="visualize" default="false" />
+
+	<arg name="node_name" default="image_capture" />
+  <arg name="reset_service" default="reset_capture" />
+  <arg name="image_topic" default="image_raw" />
+  
+  <arg name="auto_reset" default="true" />
+  <arg name="provider" default="0" />
+  <arg name="width" default="0" />
+  <arg name="height" default="0" />
+  <arg name="fps" default="0" />
+
+	<node pkg="image_capture" type="image_capture_node" name="$(arg node_name)" 
+        output="$(arg output)" respawn="$(arg respawn)"> 
+    <param name="auto_reset" type="bool" value="$(arg auto_reset)" />
+		<param name="provider" type="str" value="$(arg provider)" />
+    <param name="width" type="int" value="$(arg width)" />
+    <param name="height" type="int" value="$(arg height)" />
+    <param name="fps" type="double" value="$(arg fps)" />
+    <remap from="reset" to="$(arg reset_service)" />
+    <remap from="image" to="$(arg image_topic)" />
+	</node>
+
+  <node pkg="image_view" type="image_view" name="$(arg node_name)_view" 
+        output="$(arg output)" respawn="$(arg respawn)" if="$(arg visualize)">
+    <remap from="image" to="$(arg image_topic)" />
+  </node>
+
+</launch>
