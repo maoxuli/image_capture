@@ -220,6 +220,7 @@ void ImageCapture::capture_thread()
             ROS_WARN_STREAM("cv_bridge exception: " << ex.what());
         }
 
+        frame_count++; 
         double stop_time = ros::Time::now().toNSec(); 
         if (stop_time - start_time > 1000000000)
         {
