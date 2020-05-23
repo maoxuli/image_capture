@@ -1,0 +1,44 @@
+<launch>
+
+  <arg name="output" default="screen" />
+  <arg name="respawn" default="false" />
+  <arg name="visualize" default="false" />
+
+  <arg name="node_name" default="image_capture" />
+  <arg name="image_topic" default="image_raw" />
+  <arg name="reset_service" default="reset_capture" />
+  <arg name="auto_reset" default="true" />
+
+  <arg name="camera_id" default="0" />
+  <arg name="width" default="1920" />
+  <arg name="height" default="1080" />
+  <arg name="fps" default="30" />
+
+  <arg name="pipeline" default="nvarguscamerasrc sensor-id=$(arg camera_id) ! video/x-raw(memory:NVMM), format=(string)NV12, width=(int)$(arg width), height=(int)$(arg height), framerate=(fraction)$(arg fps)/1 ! nvvidconv flip-method=0 ! video/x-raw, format=(string)BGRx ! videoconvert ! video/x-raw, format=(string)BGR ! appsink" />
+
+  <arg name="nodelet_manager" default="" />
+  <arg name="manager_name" value="$(arg node_name)_manager" if="$(eval nodelet_manager == '')" />
+  <arg name="manager_name" value="$(arg nodelet_manager)" unless="$(eval nodelet_manager == '')" />
+
+  <node pkg="nodelet" type="nodelet" name="$(arg node_name)_manager" args="manager"
+        respawn="$(arg respawn)" output="$(arg output)" if="$(eval nodelet_manager == '')"/>
+
+  <node pkg="nodelet" type="nodelet" name="$(arg node_name)" 
+        args="load image_capture/ImageCaptureNodelet $(arg manager_name)"
+        respawn="$(arg respawn)" output="$(arg output)">
+    <param name="backend" type="str" value="gstreamer" />
+    <param name="provider" type="str" value="$(arg pipeline)" />
+    <param name="width" type="int" value="0" />
+    <param name="height" type="int" value="0" />
+    <param name="fps" type="double" value="0" />
+    <param name="auto_reset" type="bool" value="$(arg auto_reset)" />
+    <remap from="reset" to="$(arg reset_service)" />
+    <remap from="image" to="$(arg image_topic)" />
+  </node>
+
+  <node pkg="image_view" type="image_view" name="$(arg node_name)_view" 
+        output="$(arg output)" respawn="$(arg respawn)" if="$(arg visualize)">
+    <remap from="image" to="$(arg image_topic)" />
+  </node>
+
+</launch>
