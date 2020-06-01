@@ -10,11 +10,12 @@
   <arg name="auto_reset" default="true" />
 
   <arg name="camera_id" default="0" />
+  <arg name="flip" default="0" />
   <arg name="width" default="1920" />
   <arg name="height" default="1080" />
   <arg name="fps" default="30" />
 
-  <arg name="pipeline" default="nvarguscamerasrc sensor-id=$(arg camera_id) ! video/x-raw(memory:NVMM), format=(string)NV12, width=(int)$(arg width), height=(int)$(arg height), framerate=(fraction)$(arg fps)/1 ! nvvidconv flip-method=0 ! video/x-raw, format=(string)BGRx ! videoconvert ! video/x-raw, format=(string)BGR ! appsink" />
+  <arg name="pipeline" default="nvarguscamerasrc sensor-id=$(arg camera_id) ! video/x-raw(memory:NVMM), format=(string)NV12, width=(int)$(arg width), height=(int)$(arg height), framerate=(fraction)$(arg fps)/1 ! nvvidconv flip-method=$(arg flip) ! video/x-raw, format=(string)BGRx ! videoconvert ! video/x-raw, format=(string)BGR ! appsink" />
 
   <arg name="nodelet_manager" default="" />
   <arg name="manager_name" value="$(arg node_name)_manager" if="$(eval nodelet_manager == '')" />
