@@ -5,9 +5,10 @@
   <arg name="visualize" default="false" />
 
   <arg name="node_name" default="image_capture" />
-  <arg name="image_topic" default="image_raw" />
-  <arg name="reset_service" default="reset_capture" />  
+  <arg name="reset_service" default="$(arg node_name)/reset" />  
   <arg name="auto_reset" default="true" />
+
+  <arg name="image_topic" default="image_raw" />
 
   <arg name="provider" default="0" />
   <arg name="width" default="0" />
